@@ -24,9 +24,9 @@ function loadAllImg(img, sw, fun) {
 
 function run (c, imga) {
     var ctx = c.getContext('2d');
-    var w = parseInt(c.getAttribute('width')),
-        h = parseInt(c.getAttribute('height')),
-        cell = w / 12;
+    var w = parseInt(c.getAttribute('width')), // 画布的宽
+        h = parseInt(c.getAttribute('height')), // 画布的高
+        cell = w / 12; // 单元方块的边长
     function Block(type) {
         this.type = type;
         this.curstate = 1;
