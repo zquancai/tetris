@@ -1,7 +1,7 @@
 # tetris 俄罗斯方块
 
 全局函数说明
---
+==========
 ##全局函数 ``function dlImg``
 ###参数：img(string)
 ###功能：生成并返回一个image对象
