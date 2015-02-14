@@ -161,38 +161,40 @@ function run (c, imga) {
                 for (count = 0; count < l; count++) {
                     o = that.block.outline[count];
                     if (o.i >= 0 && (o.i == 20 || that.matrix[o.i + 1][o.j] == 1)) { // 向下移动时发生碰撞
-                        break; // 发生碰撞时跳出循环，方块停止下落，产生新的方块
+                        break; // 方块到达底部或落在其他方块上，方块停止下落，产生新的方块
                     }
                 }
-                if (count < l) {
+                if (count < l) { // 当方块落在底部或其他方块时，进行检测
                     that.block.outline.map(function (o) {
                         that.matrix[o.i][o.j] = 1; // 方块停止后，修改矩阵数据
                     });
+                    that.ruinMat(); // 检测是否需要爆破行，如果有执行爆破操作
                     for (var g = 0; g < that.matrix.length; g++)
                         console.log(that.matrix[g]);
                     console.log('\n');
+                    //that.block = new Block(1);
                     that.block = new Block(parseInt(Math.random() * 5) + 1);
                 }
             }
         },
-        detectMat: function () { // 检测矩阵，判断是否有连续一行
-            var count = 0,
+        detectMat: function () { // 检测矩阵，判断是否有连续一行，返回一个数组
+            var count = 0, s,
                 detecta = []; // 需要爆破的行号
             this.matrix.map(function (l, i) {
-                l.map(function (c, j) {
-                    c == 0 && count ++;
-                });
+                for(s = 0; s < l.length; s ++){
+                    if(l[s] == 1) count ++; else break;
+                }
                 count == 12 && detecta.push(i);
                 count = 0;
             });
             return detecta.length == 0 ? false : detecta;
         },
         ruinMat: function () { // 爆破连续的一行
-            var dmat = this.detectMat();
+            var dmat = this.detectMat(); // 返回整行都有方块的行号集合
             if(dmat){
                 dmat.map(function (d) {
-                    Blocks.matrix.splice(d, 1);
-                    Blocks.matrix.push([0,0,0,0,0,0,0,0,0,0,0,0]);
+                    Blocks.matrix.splice(d, 1); // 删掉整行都有方块的行
+                    Blocks.matrix.unshift([-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]); // 弥补被删的行
                 });
             }
             dmat = null;
