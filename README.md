@@ -3,9 +3,7 @@
 全局函数说明
 --
 > 
-####全局函数 ``function dlImg``
-#####参数：img(string)
-#####功能：生成并返回一个image对象
+####全局函数 ``function dlImg``#####参数：img(string)#####功能：生成并返回一个image对象
 
 > 
 ####全局函数 ``function loadAllImg``
