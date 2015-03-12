@@ -23,14 +23,12 @@ function loadAllImg(img, sw, fun) {
 }
 
 function run (c, imga) {
-    var ctx = c.getContext('2d');
-    var w = parseInt(c.getAttribute('width')),
-        h = parseInt(c.getAttribute('height')),
-        cell = w / 12;
+    var ctx = c.getContext('2d'), time = null;
+    var w = parseInt(c.getAttribute('width')), // 画布的宽
+        h = parseInt(c.getAttribute('height')), // 画布的高
+        cell = w / 12; // 单元方块的边长
     function Block(type) {
         this.type = type;
-        this.curstate = 1;
-        this.states = (this.type == 1 || this.type == 2) ? 2 : ((this.type == 4 || this.type == 4) ? 4 : 1);
         this.i = -1;
         this.j = 6;
         this.speed = 100;
@@ -67,7 +65,6 @@ function run (c, imga) {
                     {i: this.i + 1, j: this.j}];
                 break;
         }
-        //this.center = {i: this.outline[1].i, j: this.outline[1].j}; // 旋转中心
         this.dropBlock = function () { // 下落方块
             var that = this;
             if(this.defer == this.speed) {
@@ -94,6 +91,7 @@ function run (c, imga) {
         matrix: new Array(21), // 方块矩阵，-1表示空，0表示正在移动，1表示已存在
         bline: new Array(21),
         block: new Block(1),
+        score: 0,
         init: function () { // 初始化数组
             for(var i = 0; i < 21; i ++) {
                 this.bline[i] = {i: 21, j: i};
@@ -122,11 +120,25 @@ function run (c, imga) {
             });
         },
         rotateBlock: function () {
-            var that = this, ctr = that.block.outline[1];
-            that.block.outline.map(function (o, i) {
-                that.matrix[o.i][o.j] = -1; // 清空变化前的位置
-                that.block.outline[i] = that.rotatePoint(ctr,o);
-            });
+            var that = this, i, o = null, ctr = that.block.outline[1];
+            for(i = 0; i < 4; i ++){
+                o = that.rotatePoint(ctr, that.block.outline[i]);
+                if(o.j < 0 || o.j > 11 || o.i > 20){ // 旋转时不可以碰到边界及已有方块的点
+                    break;
+                }
+                else if(o.i > 0 && o.j >= 0 && o.j <= 20 && Blocks.matrix[o.i][o.j] == 1){
+                    break;
+                }
+            }
+            if(that.block.type != 4 && i == 4) { // 田字形无法旋转
+                that.block.outline.map(function (o, i) {
+                    if(o.i >= 0)
+                        that.matrix[o.i][o.j] = -1; // 清空变化前的位置
+                    that.block.outline[i] = that.rotatePoint(ctr, o);
+                });
+            }
+            else
+                console.log('不允许旋转')
         },
         rotatePoint: function (c, p) { // c点为旋转中心，p为旋转点，一次顺时针旋转90度
             return {j: p.i - c.i + c.j, i: -p.j + c.i + c.j};
@@ -145,18 +157,16 @@ function run (c, imga) {
                     if (o.i >= 0) {
                         Blocks.matrix[o.i][o.j] = -1; // 将当前位置置为-1
                         o.j = (o.j + dir == -1 || o.j + dir == 12) ? o.j : o.j + dir; // 是否允许移动，允许则将o.j+dir的值赋予o.j
-                        //that.block.center.j = (o.j + dir == -1 || o.j + dir == 12) ? that.block.center.j : that.block.center.j + dir;
                         Blocks.matrix[o.i][o.j] = 0; // 刷新最新值
                     }
                     else { // 小于0时（在矩阵之外），也需进行左右移动
-                        //that.block.center.j = (o.j + dir == -1 || o.j + dir == 12) ? that.block.center.j : that.block.center.j + dir;
                         o.j = (o.j + dir == -1 || o.j + dir == 12) ? o.j : o.j + dir;
                     }
                 });
             }
         },
         reachBottom: function () {
-            var that = this, count, o, l = that.block.outline.length;
+            var that = this, count, o, l = that.block.outline.length, i;
             if(that.block.isReady()) { // 当前方块下落帧已结束，然后进行检测是否到达了底部
                 for (count = 0; count < l; count++) {
                     o = that.block.outline[count];
@@ -165,14 +175,17 @@ function run (c, imga) {
                     }
                 }
                 if (count < l) { // 当方块落在底部或其他方块时，进行检测
-                    that.block.outline.map(function (o) {
-                        that.matrix[o.i][o.j] = 1; // 方块停止后，修改矩阵数据
-                    });
+                    for(i = 0; i < 4; i++) {
+                        o = that.block.outline[i];
+                        if(o.i >= 0){
+                            that.matrix[o.i][o.j] = 1;  // 方块停止后，修改矩阵数据
+                        }
+                        else {
+                            that.gameOver();
+                            return;
+                        }
+                    }
                     that.ruinMat(); // 检测是否需要爆破行，如果有执行爆破操作
-                    for (var g = 0; g < that.matrix.length; g++)
-                        console.log(that.matrix[g]);
-                    console.log('\n');
-                    //that.block = new Block(1);
                     that.block = new Block(parseInt(Math.random() * 5) + 1);
                 }
             }
@@ -192,19 +205,25 @@ function run (c, imga) {
         ruinMat: function () { // 爆破连续的一行
             var dmat = this.detectMat(); // 返回整行都有方块的行号集合
             if(dmat){
+                this.score = this.score + (dmat.length == 1 ? 100 : dmat.length == 2 ? 250 : dmat.length == 3 ? 450 : 700);
+                score.innerHTML = this.score.toString();
                 dmat.map(function (d) {
                     Blocks.matrix.splice(d, 1); // 删掉整行都有方块的行
                     Blocks.matrix.unshift([-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]); // 弥补被删的行
                 });
             }
             dmat = null;
+        },
+        gameOver: function () {
+            clearInterval(time);
+            alert('你挂了');
         }
     };
     Blocks.init();
-    setInterval(function () {
-        Blocks.reachBottom(); // 检测是否到达底部或者碰到已有方块
+    time = setInterval(function () {
         Blocks.block.dropBlock(); // 下落方块
         Blocks.refreshMat(); // 刷新矩阵
+        Blocks.reachBottom(); // 检测是否到达底部或者碰到已有方块
     },10);
     document.onkeydown = function (e) {
         switch (e.keyCode){ // 向上按键
@@ -231,7 +250,8 @@ function run (c, imga) {
     }
 }
 
-var c = document.getElementById('tetris');
+var c = document.getElementById('tetris'),
+    score = document.getElementById('score');
 (function () { // 适应手机屏幕
     c.setAttribute('height', 420 > window.innerHeight ? window.innerHeight.toString() : '420');
     c.setAttribute('width', 240 > window.innerWidth ? window.innerWidth.toString() : '240');
@@ -242,4 +262,3 @@ loadAllImg(['null.png','cell.png'],
     parseInt(c.getAttribute('width')) / 240, function () {
         run(c, oimgarr);
     });
-
