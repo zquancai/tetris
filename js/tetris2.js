@@ -110,12 +110,40 @@
             block: new Block(1),
             score: 0,
             init: function () { // 初始化数组
+                var that = this;
                 for(var i = 0; i < 21; i ++) {
                     this.bline[i] = {i: 21, j: i};
                     this.matrix[i] = new Array(12);
                     for (var j = 0; j < 12; j ++) {
                         this.matrix[i][j] = -1;
                         ctx.drawImage(this.nullimg, j * cell, i * cell, this.nullimg.width, this.nullimg.height);
+                    }
+                }
+                document.onkeydown = function (e) {
+                    switch (e.keyCode){ // 向上按键
+                        case 37: // ←
+                            that.setSite(-1);
+                            break;
+                        case 38: // ↑
+                            that.rotateBlock();
+                            break;
+                        case 39: // →
+                            that.setSite(1);
+                            break;
+                        case 40: // ↓
+                            if(that.block.speed == config.SPEED)
+                                that.block.speedUp();
+                            break;
+                        case 32: // 暂停
+                            !that.pause ? that.suspend() : that.start();
+                            break;
+                        default :
+                            return false;
+                    }
+                };
+                document.onkeyup = function (e) {
+                    if(e.keyCode == 40){
+                        that.block.speed = config.SPEED;
                     }
                 }
             },
@@ -251,33 +279,6 @@
         };
         Blocks.init();
         Blocks.start();
-        document.onkeydown = function (e) {
-            switch (e.keyCode){ // 向上按键
-                case 37: // ←
-                    Blocks.setSite(-1);
-                    break;
-                case 38: // ↑
-                    Blocks.rotateBlock();
-                    break;
-                case 39: // →
-                    Blocks.setSite(1);
-                    break;
-                case 40: // ↓
-                    if(Blocks.block.speed == config.SPEED)
-                        Blocks.block.speedUp();
-                    break;
-                case 32: // 暂停
-                    !Blocks.pause ? Blocks.suspend() : Blocks.start();
-                    break;
-                default :
-                    return false;
-            }
-        };
-        document.onkeyup = function (e) {
-            if(e.keyCode == 40){
-                Blocks.block.speed = config.SPEED;
-            }
-        }
     }
 
     var c = document.getElementById('tetris'),
