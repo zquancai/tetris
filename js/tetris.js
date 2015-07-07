@@ -4,12 +4,13 @@
 
 (function () {
 
+    // 参数配置
     var config = {
-        I: -1,
-        J: 6,
-        SPEED: 25,
-        FASTSPEED: 1,
-        TIME: 40
+        I: -1, // 方块出现的初始行位置
+        J: 6, // 方块出现的初始列位置
+        SPEED: 25, // 正常速度
+        FASTSPEED: 1, // 最快速度
+        TIME: 40 // 40ms的刷新速度
     };
 
     function dlImg(img) { // 返回一个img对象
@@ -44,14 +45,14 @@
     function run (c, imga) {
         var ctx = c.getContext('2d'), time = null;
         var w = parseInt(c.getAttribute('width')), // 画布的宽
-            cell = w / 12; // 单元方块的边长
+            cell = w / 12; // 单元块的边长
         function Block(type) {
-            this.type = type; // 形状类型
+            this.type = type; // 方块类型
             this.i = config.I; // 初始行位置
             this.j = config.J; // 初始列位置
             this.speed = config.SPEED; // 初始速度
             this.defer = 0; // 延迟累计
-            switch (this.type) { // 根据type值初始化形状包含的方块的坐标，outline属性值存储着这些坐标值
+            switch (this.type) { // 根据type值初始化方块的坐标，outline属性值存储着这些坐标值
                 case 1: // l字
                     this.outline = [{i: this.i, j: this.j},
                         {i: this.i - 1, j: this.j},
@@ -93,7 +94,7 @@
                 else
                     this.defer ++;
             };
-            this.speedUp= function () { // 按下方向键时，形状加速下降
+            this.speedUp= function () { // 按下方向键时，方块加速下降
                 this.speed = 1;
                 this.defer = 0;
             };
@@ -104,23 +105,22 @@
         var Blocks = {
             nullimg: imga['null.png'],
             cellimg: imga['cell.png'],
-            pause: false,
-            matrix: new Array(21), // 方块矩阵，-1表示空，0表示正在移动，1表示已存在
-            bline: new Array(21),
-            block: new Block(1),
-            score: 0,
-            init: function () { // 初始化数组
-                var that = this;
-                for(var i = 0; i < 21; i ++) {
-                    this.bline[i] = {i: 21, j: i};
+            pause: false, // 游戏是否处于暂停中
+            matrix: new Array(21), // 矩阵，-1表示空，0表示正在移动，1表示已存在
+            block: new Block(1), // 默认第一个出现的方块类型为1
+            score: 0, // 分数累计
+            init: function () {
+                var that = this, code = null;
+                for(var i = 0; i < 21; i ++) { // 初始化矩阵数组
                     this.matrix[i] = new Array(12);
                     for (var j = 0; j < 12; j ++) {
                         this.matrix[i][j] = -1;
                         ctx.drawImage(this.nullimg, j * cell, i * cell, this.nullimg.width, this.nullimg.height);
                     }
                 }
-                document.onkeydown = function (e) {
-                    switch (e.keyCode){ // 向上按键
+                document.onkeydown = function (e) { // 按键事件
+                    code = e.keyCode || e.which;
+                    switch (code){
                         case 37: // ←
                             that.setSite(-1);
                             break;
@@ -130,9 +130,9 @@
                         case 39: // →
                             that.setSite(1);
                             break;
-                        case 40: // ↓
+                        case 40: // ↓ 长按加速下滑
                             if(that.block.speed == config.SPEED)
-                                that.block.speedUp();
+                                that.block.speedUp(); // 加速
                             break;
                         case 32: // 暂停
                             !that.pause ? that.suspend() : that.start();
@@ -142,21 +142,23 @@
                     }
                 };
                 document.onkeyup = function (e) {
-                    if(e.keyCode == 40){
+                    if(e.keyCode == 40){ // 松开↓恢复速度
                         that.block.speed = config.SPEED;
                     }
                 }
             },
-            start: function () {
+            start: function () { // 开始游戏
                 var that = this;
                 time = setInterval(function () {
+                    console.time('all');
                     that.block.dropBlock(); // 下落方块
                     that.refreshMat(); // 刷新矩阵
                     that.reachBottom(); // 检测是否到达底部或者碰到已有方块
+                    console.timeEnd('all');
                 }, config.TIME);
                 this.pause = false;
             },
-            suspend: function () {
+            suspend: function () { // 暂停
                 this.pause = true;
                 clearInterval(time);
             },
@@ -239,7 +241,7 @@
                                 that.matrix[o.i][o.j] = 1;  // 方块停止后，修改矩阵数据
                             }
                             else {
-                                that.gameOver();
+                                that.gameOver(); // 游戏结束
                                 return;
                             }
                         }
@@ -283,12 +285,14 @@
 
     var c = document.getElementById('tetris'),
         score = document.getElementById('score');
-        c.setAttribute('height', 420 > window.innerHeight ? window.innerHeight.toString() : '420');
-        c.setAttribute('width', 240 > window.innerWidth ? window.innerWidth.toString() : '240');
+    c.setAttribute('height', 420 > window.innerHeight ? window.innerHeight.toString() : '420');
+    c.setAttribute('width', 240 > window.innerWidth ? window.innerWidth.toString() : '240');
 
     var oimgarr = {}; // 全局变量
     loadAllImg(['null.png','cell.png'],
         parseInt(c.getAttribute('width')) / 240, function () {
             run(c, oimgarr);
-        });
+        }
+    );
+
 })();
